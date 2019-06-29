@@ -1,0 +1,173 @@
+#include<stdio.h>
+
+int start=0;
+int end=0;
+int req_queue[100000]={};
+
+typedef struct process{
+
+	int pid;
+	int ta;
+	int bt;
+	int wt; 
+	int completed;
+
+}process;
+
+void sort(int n,process p[n])
+{
+	for(int i=0;i<n-1;i++)
+	{
+		int done=1;
+		for(int j=0;j<n-1;j++)
+		{
+			if( p[j].ta>p[j+1].ta || (p[j].ta==p[j+1].ta && p[j].bt>p[j+1].bt ) )
+			{
+				process temp=p[j+1];
+				p[j+1]=p[j];
+				p[j]=temp;
+				done=0;
+			}
+			
+		}
+		if(done)
+			return;
+	}
+}
+
+void printproc(int n,process p[n])
+{
+	printf("\nPROCESSES:");
+	printf("\nPID TIMEARRIVAL BURSTTIME WAITTIME COMPLETED ");
+	
+	for(int i=0;i<n;i++)
+	{
+		printf("\n%3d %10d %9d %8d %9d",p[i].pid,p[i].ta,p[i].bt,p[i].wt,p[i].completed);
+	}
+}
+
+int enque(int i)//i is process id
+{
+	if(end<100000)
+	{
+		printf("\nEnquing process with pid:%2d",i);
+		req_queue[end++]=i;
+		return 1;
+	}
+	
+	else
+		return -1;
+}
+
+int deque()
+{
+	if(start==end)
+	{
+		return -1;
+	}
+	
+	else
+	{
+		start++;
+		printf("\nDequeing process pid:%2d",req_queue[start-1]);
+		return req_queue[start-1];
+	}
+}
+
+int main()
+{
+	int n,threshold,time;
+	scanf("%d %d",&n,&threshold);
+	process p[n];
+	process dup[n];//duplicate of p for reference when p changes
+	int btime[n];
+	int tarr[n];
+	int flag=0;	
+	for(int i=0;i<n;i++)
+	{
+		scanf("%d %d",&p[i].ta,&p[i].bt);
+		p[i].pid=i;
+		p[i].wt=0;
+		p[i].completed=0;
+		btime[i]=p[i].bt;//have a copy of burst times
+		tarr[i]=p[i].ta;//arrival too
+		dup[i]=p[i];//struct copy check once
+	}
+		
+	sort(n,p);//sort based on arrival times and then based on burst times	
+	int finished=0;
+	
+	printproc(n,p);
+	printproc(n,dup);	
+	
+	int top=0;
+	time=p[top].ta;//initialize time with least t-arrival 
+	enque(p[top].pid);//enque process 1
+	top++; 
+	while(finished!=n)
+	{
+		
+		int proc=deque();
+		
+		if(proc==-1)
+		{
+			printf("\nERROR1");
+			return -1;		
+		}
+		
+		else
+		{
+			if(btime[proc]<=threshold)
+			{
+				time+=btime[proc];
+				btime[proc]=0;
+				dup[proc].completed=1;
+				dup[proc].wt=time-dup[proc].ta-dup[proc].bt;
+				finished+=1;
+			}
+			
+			else
+			{
+				btime[proc]-=threshold;
+				time+=threshold;
+			}			
+		}
+		
+		if(flag==0)
+		{
+			//enque all new processes	
+			while( p[top].ta<=time )			
+			{
+				int x=enque(p[top].pid);
+				
+				if(x==-1)
+				{
+					printf("\nERROR2");
+					return -1;
+				}
+						
+				top++;
+				if(top==n)
+				{
+					flag=1;
+					break;
+				}	
+			}			
+		}
+		
+		if(flag==0 && start==end && btime[proc]==0)
+		{
+			time=p[top].ta;
+		}
+
+		else if(btime[proc]>0)
+		{
+			enque(proc);
+		}			
+
+	}
+	printf("\nFinal details:\n");
+	printproc(n,dup);
+	printf("\n");
+	return 0;
+}
